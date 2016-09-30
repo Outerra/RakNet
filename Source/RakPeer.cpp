@@ -15,6 +15,7 @@
 
 #define CAT_NEUTER_EXPORT /* Neuter dllimport for libcat */
 
+#include "PacketDataPool.h"
 #include "RakNetDefines.h"
 #include "RakPeer.h"
 #include "RakNetTypes.h"
@@ -143,40 +144,18 @@ struct PacketFollowedByData
 
 Packet *RakPeer::AllocPacket(unsigned dataSize, const char *file, unsigned int line)
 {
-	// Crashes when dataSize is 4 bytes - not sure why
-// 	unsigned char *data = (unsigned char *) rakMalloc_Ex(sizeof(PacketFollowedByData)+dataSize, file, line);
-// 	Packet *p = &((PacketFollowedByData *)data)->p;
-// 	p->data=((PacketFollowedByData *)data)->data;
-// 	p->length=dataSize;
-// 	p->bitSize=BYTES_TO_BITS(dataSize);
-// 	p->deleteData=false;
-// 	p->guid=UNASSIGNED_RAKNET_GUID;
-// 	return p;
-
-	RakNet::Packet *p;
-	packetAllocationPoolMutex.Lock();
-	p = packetAllocationPool.Allocate(file,line);
-	packetAllocationPoolMutex.Unlock();
-	p = new ((void*)p) Packet;
-	p->data=(unsigned char*) rakMalloc_Ex(dataSize,file,line);
-	p->length=dataSize;
-	p->bitSize=BYTES_TO_BITS(dataSize);
-	p->deleteData=true;
-	p->guid=UNASSIGNED_RAKNET_GUID;
-	p->wasGeneratedLocally=false;
-	return p;
+    return AllocPacket(dataSize, PacketDataPool::get(dataSize), file, line);
 }
 
 Packet *RakPeer::AllocPacket(unsigned dataSize, unsigned char *data, const char *file, unsigned int line)
 {
-	// Packet *p = (Packet *)rakMalloc_Ex(sizeof(Packet), file, line);
 	RakNet::Packet *p;
 	packetAllocationPoolMutex.Lock();
 	p = packetAllocationPool.Allocate(file,line);
 	packetAllocationPoolMutex.Unlock();
 	p = new ((void*)p) Packet;
 	RakAssert(p);
-	p->data=data;
+    p->data = data;
 	p->length=dataSize;
 	p->bitSize=BYTES_TO_BITS(dataSize);
 	p->deleteData=true;
@@ -1310,7 +1289,16 @@ uint32_t RakPeer::IncrementNextSendReceipt(void)
 // Returns:
 // \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-uint32_t RakPeer::Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber )
+uint32_t RakPeer::Send(const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber, bool copy_data ) {
+    if (broadcast) {
+        return Send(data, length, priority, reliability, orderingChannel, NULL, 0, forceReceiptNumber, copy_data);
+    }
+
+    const AddressOrGUID recipients[] = { systemIdentifier };
+    return Send(data, length, priority, reliability, orderingChannel, recipients, 1, forceReceiptNumber, copy_data);
+}
+
+uint32_t RakPeer::Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, uint32_t forceReceiptNumber, bool copy_data )
 {
 #ifdef _DEBUG
 	RakAssert( data && length > 0 );
@@ -1325,18 +1313,15 @@ uint32_t RakPeer::Send( const char *data, const int length, PacketPriority prior
 	if ( remoteSystemList == 0 || endThreads == true )
 		return 0;
 
-	if ( broadcast == false && systemIdentifier.IsUndefined())
-		return 0;
-
 	uint32_t usedSendReceipt;
 	if (forceReceiptNumber!=0)
 		usedSendReceipt=forceReceiptNumber;
 	else
 		usedSendReceipt=IncrementNextSendReceipt();
 
-	if (broadcast==false && IsLoopbackAddress(systemIdentifier,true))
+	if ((recipientCount == 1) && (IsLoopbackAddress(recipients[0], true)))
 	{
-		SendLoopback(data,length);
+		SendLoopback(data, length, copy_data);
 
 		if (reliability>=UNRELIABLE_WITH_ACK_RECEIPT)
 		{
@@ -1351,18 +1336,26 @@ uint32_t RakPeer::Send( const char *data, const int length, PacketPriority prior
 		return usedSendReceipt;
 	}
 
-	SendBuffered(data, length*8, priority, reliability, orderingChannel, systemIdentifier, broadcast, RemoteSystemStruct::NO_ACTION, usedSendReceipt);
+	SendBuffered(data, length*8, priority, reliability, orderingChannel, recipients, recipientCount, RemoteSystemStruct::NO_ACTION, usedSendReceipt, copy_data);
 
 	return usedSendReceipt;
 }
 
-void RakPeer::SendLoopback( const char *data, const int length )
+void RakPeer::SendLoopback( const char *data, const int length, bool copy_data )
 {
 	if ( data == 0 || length < 0 )
 		return;
 
-	Packet *packet = AllocPacket(length, _FILE_AND_LINE_);
-	memcpy(packet->data, data, length);
+    Packet *packet;
+
+    if (copy_data) {
+        packet = AllocPacket(length, _FILE_AND_LINE_);
+        memcpy(packet->data, data, length);
+    }
+    else {
+        packet = AllocPacket(length, (unsigned char *) data, _FILE_AND_LINE_);
+    }
+
 	packet->systemAddress = GetLoopbackAddress();
 	packet->guid=myGuid;
 	PushBackPacket(packet, false);
@@ -1622,7 +1615,8 @@ void RakPeer::DeallocatePacket( Packet *packet )
 
 	if (packet->deleteData)
 	{
-		rakFree_Ex(packet->data, _FILE_AND_LINE_ );
+        PacketDataPool::put(packet->data);
+        packet->data = 0;
 		packet->~Packet();
 		packetAllocationPoolMutex.Lock();
 		packetAllocationPool.Release(packet,_FILE_AND_LINE_);
@@ -2867,8 +2861,10 @@ void RakPeer::ChangeSystemAddress(RakNetGUID guid, const SystemAddress &systemAd
 
 	bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
 	bcs->data = 0;
-	bcs->systemIdentifier.systemAddress=systemAddress;
-	bcs->systemIdentifier.rakNetGuid=guid;
+    bcs->recipientCount = 1;
+    AddressOrGUID &systemIdentifier = bcs->recipients[0];
+	systemIdentifier.systemAddress=systemAddress;
+	systemIdentifier.rakNetGuid=guid;
 	bcs->command=BufferedCommandStruct::BCS_CHANGE_SYSTEM_ADDRESS;
 	bufferedCommands.Push(bcs);
 }
@@ -2884,7 +2880,8 @@ RakNetSocket2* RakPeer::GetSocket( const SystemAddress target )
 	BufferedCommandStruct *bcs;
 	bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
 	bcs->command=BufferedCommandStruct::BCS_GET_SOCKET;
-	bcs->systemIdentifier=target;
+	bcs->recipients[0]=target;
+    bcs->recipientCount = 1;
 	bcs->data=0;
 	bufferedCommands.Push(bcs);
 
@@ -2922,7 +2919,8 @@ void RakPeer::GetSockets( DataStructures::List<RakNetSocket2* > &sockets )
 
 	bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
 	bcs->command=BufferedCommandStruct::BCS_GET_SOCKET;
-	bcs->systemIdentifier=UNASSIGNED_SYSTEM_ADDRESS;
+	bcs->recipients[0] = UNASSIGNED_SYSTEM_ADDRESS;
+    bcs->recipientCount = 1;
 	bcs->data=0;
 	bufferedCommands.Push(bcs);
 
@@ -4196,7 +4194,8 @@ void RakPeer::CloseConnectionInternal( const AddressOrGUID& systemIdentifier, bo
 			BufferedCommandStruct *bcs;
 			bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
 			bcs->command=BufferedCommandStruct::BCS_CLOSE_CONNECTION;
-			bcs->systemIdentifier=target;
+			bcs->recipients[0] = target;
+            bcs->recipientCount = 1;
 			bcs->data=0;
 			bcs->orderingChannel=orderingChannel;
 			bcs->priority=disconnectionNotificationPriority;
@@ -4205,12 +4204,23 @@ void RakPeer::CloseConnectionInternal( const AddressOrGUID& systemIdentifier, bo
 	}
 }
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt )
+void RakPeer::SendBuffered(const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data) {
+    if (broadcast) {
+        SendBuffered(data, numberOfBitsToSend, priority, reliability, orderingChannel, NULL, 0, connectionMode, receipt, copy_data);
+        return;
+    }
+
+    const AddressOrGUID recipients[] = { systemIdentifier };
+    SendBuffered(data, numberOfBitsToSend, priority, reliability, orderingChannel, recipients, 1, connectionMode, receipt, copy_data);
+}
+
+
+void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data)
 {
 	BufferedCommandStruct *bcs;
 
 	bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
-	bcs->data = (char*) rakMalloc_Ex( (size_t) BITS_TO_BYTES(numberOfBitsToSend), _FILE_AND_LINE_ ); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
+	bcs->data = (char*) PacketDataPool::get(BITS_TO_BYTES(numberOfBitsToSend)); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
 	if (bcs->data==0)
 	{
 		notifyOutOfMemory(_FILE_AND_LINE_);
@@ -4227,8 +4237,8 @@ void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, Pack
 	bcs->priority=priority;
 	bcs->reliability=reliability;
 	bcs->orderingChannel=orderingChannel;
-	bcs->systemIdentifier=systemIdentifier;
-	bcs->broadcast=broadcast;
+	memcpy(bcs->recipients, recipients, recipientCount * sizeof(AddressOrGUID));
+	bcs->recipientCount=recipientCount;
 	bcs->connectionMode=connectionMode;
 	bcs->receipt=receipt;
 	bcs->command=BufferedCommandStruct::BCS_SEND;
@@ -4241,7 +4251,18 @@ void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, Pack
 	}
 }
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-void RakPeer::SendBufferedList( const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt )
+
+void RakPeer::SendBufferedList(const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt) {
+    if (broadcast) {
+        SendBufferedList(data, lengths, numParameters, priority, reliability, orderingChannel, NULL, 0, connectionMode, receipt);
+        return;
+    }
+
+    const AddressOrGUID recipients[] = { systemIdentifier };
+    SendBufferedList(data, lengths, numParameters, priority, reliability, orderingChannel, recipients, 1, connectionMode, receipt);
+}
+
+void RakPeer::SendBufferedList( const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt )
 {
 	BufferedCommandStruct *bcs;
 	unsigned int totalLength=0;
@@ -4256,7 +4277,7 @@ void RakPeer::SendBufferedList( const char **data, const int *lengths, const int
 		return;
 
 	char *dataAggregate;
-	dataAggregate = (char*) rakMalloc_Ex( (size_t) totalLength, _FILE_AND_LINE_ ); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
+	dataAggregate = (char*) PacketDataPool::get(totalLength); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
 	if (dataAggregate==0)
 	{
 		notifyOutOfMemory(_FILE_AND_LINE_);
@@ -4271,10 +4292,10 @@ void RakPeer::SendBufferedList( const char **data, const int *lengths, const int
 		}
 	}
 
-	if (broadcast==false && IsLoopbackAddress(systemIdentifier,true))
+	if ((recipientCount == 1) && (IsLoopbackAddress(recipients[0], true)))
 	{
 		SendLoopback(dataAggregate,totalLength);
-		rakFree_Ex(dataAggregate,_FILE_AND_LINE_);
+		PacketDataPool::put((unsigned char *) dataAggregate);
 		return;
 	}
 
@@ -4288,8 +4309,8 @@ void RakPeer::SendBufferedList( const char **data, const int *lengths, const int
 	bcs->priority=priority;
 	bcs->reliability=reliability;
 	bcs->orderingChannel=orderingChannel;
-	bcs->systemIdentifier=systemIdentifier;
-	bcs->broadcast=broadcast;
+    memcpy(bcs->recipients, recipients, recipientCount * sizeof(AddressOrGUID));
+    bcs->recipientCount = recipientCount;
 	bcs->connectionMode=connectionMode;
 	bcs->receipt=receipt;
 	bcs->command=BufferedCommandStruct::BCS_SEND;
@@ -4302,49 +4323,57 @@ void RakPeer::SendBufferedList( const char **data, const int *lengths, const int
 	}
 }
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt )
+
+bool RakPeer::SendImmediate(char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt) {
+    if (broadcast) {
+        return SendImmediate(data, numberOfBitsToSend, priority, reliability, orderingChannel, NULL, 0, useCallerDataAllocation, currentTime, receipt);
+    }
+
+    const AddressOrGUID recipients[] = { systemIdentifier };
+    return SendImmediate(data, numberOfBitsToSend, priority, reliability, orderingChannel, recipients, 1, useCallerDataAllocation, currentTime, receipt);
+}
+
+bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt )
 {
 	unsigned *sendList;
 	unsigned sendListSize;
 	bool callerDataAllocationUsed;
-	unsigned int remoteSystemIndex, sendListIndex; // Iterates into the list of remote systems
+	unsigned int remoteSystemIndex; // Iterates into the list of remote systems
 //	unsigned numberOfBytesUsed = (unsigned) BITS_TO_BYTES(numberOfBitsToSend);
 	callerDataAllocationUsed=false;
 
 	sendListSize=0;
 
-	if (systemIdentifier.systemAddress!=UNASSIGNED_SYSTEM_ADDRESS)
-		remoteSystemIndex=GetIndexFromSystemAddress( systemIdentifier.systemAddress, true );
-	else if (systemIdentifier.rakNetGuid!=UNASSIGNED_RAKNET_GUID)
-		remoteSystemIndex=GetSystemIndexFromGuid(systemIdentifier.rakNetGuid);
-	else
-		remoteSystemIndex=(unsigned int) -1;
-
-	// 03/06/06 - If broadcast is false, use the optimized version of GetIndexFromSystemAddress
-	if (broadcast==false)
+	if (recipientCount > 0)
 	{
-		if (remoteSystemIndex==(unsigned int) -1)
-		{
-#ifdef _DEBUG
-//			int debugIndex = GetRemoteSystemIndex(systemIdentifier.systemAddress);
+
+#if USE_ALLOCA==1
+        sendList = (unsigned *)alloca(sizeof(unsigned)*recipientCount);
+#else
+        sendList = (unsigned *)rakMalloc_Ex(sizeof(unsigned)*recipientCount, _FILE_AND_LINE_);
 #endif
-			return false;
-		}
+        for (int r = 0; r < recipientCount; r++) {
+            const AddressOrGUID &systemIdentifier = recipients[r];
 
-		#if USE_ALLOCA==1
-			sendList=(unsigned *)alloca(sizeof(unsigned));
-		#else
-			sendList = (unsigned *) rakMalloc_Ex(sizeof(unsigned), _FILE_AND_LINE_);
-		#endif
+            if (systemIdentifier.systemAddress != UNASSIGNED_SYSTEM_ADDRESS) {
+                remoteSystemIndex = GetIndexFromSystemAddress(systemIdentifier.systemAddress, true);
+            }
+            else if (systemIdentifier.rakNetGuid != UNASSIGNED_RAKNET_GUID) {
+                remoteSystemIndex = GetSystemIndexFromGuid(systemIdentifier.rakNetGuid);
+            }
+            else {
+                continue;
+            }
 
-		if (remoteSystemList[remoteSystemIndex].isActive &&
-			remoteSystemList[remoteSystemIndex].connectMode!=RemoteSystemStruct::DISCONNECT_ASAP &&
-			remoteSystemList[remoteSystemIndex].connectMode!=RemoteSystemStruct::DISCONNECT_ASAP_SILENTLY &&
-			remoteSystemList[remoteSystemIndex].connectMode!=RemoteSystemStruct::DISCONNECT_ON_NO_ACK)
-		{
-			sendList[0]=remoteSystemIndex;
-			sendListSize=1;
-		}
+            if ((remoteSystemIndex >= 0) &&
+                remoteSystemList[remoteSystemIndex].isActive &&
+                remoteSystemList[remoteSystemIndex].connectMode != RemoteSystemStruct::DISCONNECT_ASAP &&
+                remoteSystemList[remoteSystemIndex].connectMode != RemoteSystemStruct::DISCONNECT_ASAP_SILENTLY &&
+                remoteSystemList[remoteSystemIndex].connectMode != RemoteSystemStruct::DISCONNECT_ON_NO_ACK)
+            {
+                sendList[sendListSize++] = remoteSystemIndex;
+            }
+        }
 	}
 	else
 	{
@@ -4375,12 +4404,11 @@ bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPri
 		return false;
 	}
 
-	for (sendListIndex=0; sendListIndex < sendListSize; sendListIndex++)
+	for (unsigned int sendListIndex=0; sendListIndex < sendListSize; sendListIndex++)
 	{
 		// Send may split the packet and thus deallocate data.  Don't assume data is valid if we use the callerAllocationData
-		bool useData = useCallerDataAllocation && callerDataAllocationUsed==false && sendListIndex+1==sendListSize;
-		remoteSystemList[sendList[sendListIndex]].reliabilityLayer.Send( data, numberOfBitsToSend, priority, reliability, orderingChannel, useData==false, remoteSystemList[sendList[sendListIndex]].MTUSize, currentTime, receipt );
-		if (useData)
+		remoteSystemList[sendList[sendListIndex]].reliabilityLayer.Send( data, numberOfBitsToSend, priority, reliability, orderingChannel, !useCallerDataAllocation, remoteSystemList[sendList[sendListIndex]].MTUSize, currentTime, receipt );
+		if (useCallerDataAllocation)
 			callerDataAllocationUsed=true;
 
 		if (reliability==RELIABLE ||
@@ -4440,7 +4468,7 @@ void RakPeer::ClearBufferedCommands(void)
 	while ((bcs=bufferedCommands.Pop())!=0)
 	{
 		if (bcs->data)
-			rakFree_Ex(bcs->data, _FILE_AND_LINE_ );
+            PacketDataPool::put((unsigned char *)bcs->data);
 
 		bufferedCommands.Deallocate(bcs, _FILE_AND_LINE_);
 	}
@@ -5660,36 +5688,36 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 				timeMS = (RakNet::TimeMS)(timeNS/(RakNet::TimeUS)1000);
 			}
 
-			callerDataAllocationUsed=SendImmediate((char*)bcs->data, bcs->numberOfBitsToSend, bcs->priority, bcs->reliability, bcs->orderingChannel, bcs->systemIdentifier, bcs->broadcast, true, timeNS, bcs->receipt);
-			if ( callerDataAllocationUsed==false )
-				rakFree_Ex(bcs->data, _FILE_AND_LINE_ );
+			callerDataAllocationUsed=SendImmediate((char*)bcs->data, bcs->numberOfBitsToSend, bcs->priority, bcs->reliability, bcs->orderingChannel, bcs->recipients, bcs->recipientCount, true, timeNS, bcs->receipt);
+            if (callerDataAllocationUsed == false)
+                PacketDataPool::put((unsigned char *) bcs->data);
 
 			// Set the new connection state AFTER we call sendImmediate in case we are setting it to a disconnection state, which does not allow further sends
 			if (bcs->connectionMode!=RemoteSystemStruct::NO_ACTION )
 			{
-				remoteSystem=GetRemoteSystem( bcs->systemIdentifier, true, true );
+				remoteSystem=GetRemoteSystem( bcs->recipients[0], true, true );
 				if (remoteSystem)
 					remoteSystem->connectMode=bcs->connectionMode;
 			}
 		}
 		else if (bcs->command==BufferedCommandStruct::BCS_CLOSE_CONNECTION)
 		{
-			CloseConnectionInternal(bcs->systemIdentifier, false, true, bcs->orderingChannel, bcs->priority);
+			CloseConnectionInternal(bcs->recipients[0], false, true, bcs->orderingChannel, bcs->priority);
 		}
 		else if (bcs->command==BufferedCommandStruct::BCS_CHANGE_SYSTEM_ADDRESS)
 		{
 			// Reroute
-			RakPeer::RemoteSystemStruct *rssFromGuid = GetRemoteSystem(bcs->systemIdentifier.rakNetGuid,true,true);
+			RakPeer::RemoteSystemStruct *rssFromGuid = GetRemoteSystem(bcs->recipients[0].rakNetGuid,true,true);
 			if (rssFromGuid!=0)
 			{
 				unsigned int existingSystemIndex = GetRemoteSystemIndex(rssFromGuid->systemAddress);
-				ReferenceRemoteSystem(bcs->systemIdentifier.systemAddress, existingSystemIndex);
+				ReferenceRemoteSystem(bcs->recipients[0].systemAddress, existingSystemIndex);
 			}
 		}
 		else if (bcs->command==BufferedCommandStruct::BCS_GET_SOCKET)
 		{
 			SocketQueryOutput *sqo;
-			if (bcs->systemIdentifier.IsUndefined())
+			if (bcs->recipients[0].IsUndefined())
 			{
 				sqo = socketQueryOutput.Allocate( _FILE_AND_LINE_ );
 				sqo->sockets=socketList;
@@ -5697,7 +5725,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 			}
 			else
 			{
-				remoteSystem=GetRemoteSystem( bcs->systemIdentifier, true, true );
+				remoteSystem=GetRemoteSystem(bcs->recipients[0], true, true );
 				sqo = socketQueryOutput.Allocate( _FILE_AND_LINE_ );
 
 				sqo->sockets.Clear(false, _FILE_AND_LINE_);
@@ -5992,7 +6020,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 					if ( (unsigned char)(data)[0] == ID_CONNECTION_REQUEST )
 					{
  						ParseConnectionRequestPacket(remoteSystem, systemAddress, (const char*)data, byteSize);
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 					else
 					{
@@ -6004,9 +6032,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 						char str1[64];
 						systemAddress.ToString(false, str1);
 						AddToBanList(str1, remoteSystem->reliabilityLayer.GetTimeoutTime());
-
-
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 				}
 				else
@@ -6035,7 +6061,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 							// This can happen due to race conditions with the fully connected mesh
 							OnConnectionRequest( remoteSystem, incomingTimestamp );
 						}
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 					else if ( (unsigned char) data[ 0 ] == ID_NEW_INCOMING_CONNECTION && byteSize > sizeof(unsigned char)+sizeof(unsigned int)+sizeof(unsigned short)+sizeof(RakNet::Time)*2 )
 					{
@@ -6124,7 +6150,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 
 						OnConnectedPong(sendPingTime,sendPongTime,remoteSystem);
 
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 					else if ( (unsigned char)data[0] == ID_CONNECTED_PING && byteSize == sizeof(unsigned char)+sizeof(RakNet::Time) )
 					{
@@ -6142,20 +6168,20 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 						// Update again immediately after this tick so the ping goes out right away
 						quitAndDataEvents.SetEvent();
 
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 					else if ( (unsigned char) data[ 0 ] == ID_DISCONNECTION_NOTIFICATION )
 					{
 						// We shouldn't close the connection immediately because we need to ack the ID_DISCONNECTION_NOTIFICATION
 						remoteSystem->connectMode=RemoteSystemStruct::DISCONNECT_ON_NO_ACK;
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 
 					//	AddPacketToProducer(packet);
 					}
 					else if ( (unsigned char)(data)[0] == ID_DETECT_LOST_CONNECTIONS && byteSize == sizeof(unsigned char) )
 					{
 						// Do nothing
-						rakFree_Ex(data, _FILE_AND_LINE_ );
+                        PacketDataPool::put(data);
 					}
 					else if ( (unsigned char)(data)[0] == ID_INVALID_PASSWORD )
 					{
@@ -6173,7 +6199,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 						}
 						else
 						{
-							rakFree_Ex(data, _FILE_AND_LINE_ );
+                            PacketDataPool::put(data);
 						}
 					}
 					else if ( (unsigned char)(data)[0] == ID_CONNECTION_REQUEST_ACCEPTED )
@@ -6271,14 +6297,14 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 							else
 							{
 								// Ignore, already connected
-								rakFree_Ex(data, _FILE_AND_LINE_ );
+                                PacketDataPool::put(data);
 							}
 						}
 						else
 						{
 							// Version mismatch error?
 							RakAssert(0);
-							rakFree_Ex(data, _FILE_AND_LINE_ );
+                            PacketDataPool::put(data);
 						}
 					}
 					else
@@ -6300,7 +6326,7 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 						}
 						else
 						{
-							rakFree_Ex(data, _FILE_AND_LINE_ );
+                            PacketDataPool::put(data);
 						}
 					}
 				}

@@ -195,14 +195,14 @@ public:
 	/// \param[in] broadcast True to send this packet to all connected systems. If true, then systemAddress specifies who not to send the packet to.
 	/// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
 	/// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
-	virtual uint32_t Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0 )=0;
+	virtual uint32_t Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0, bool copy_data = true )=0;
 
 	/// "Send" to yourself rather than a remote system. The message will be processed through the plugins and returned to the game as usual
 	/// This function works anytime
 	/// The first byte should be a message identifier starting at ID_USER_PACKET_ENUM
 	/// \param[in] data The block of data to send
 	/// \param[in] length The size in bytes of the data to send
-	virtual void SendLoopback( const char *data, const int length )=0;
+	virtual void SendLoopback( const char *data, const int length, bool copy_data = true )=0;
 
 	/// Sends a block of data to the specified system that you are connected to.  Same as the above version, but takes a BitStream as input.
 	/// \param[in] bitStream The bitstream to send

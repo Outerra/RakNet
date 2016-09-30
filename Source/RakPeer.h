@@ -219,7 +219,8 @@ public:
 	/// \param[in] broadcast True to send this packet to all connected systems. If true, then systemAddress specifies who not to send the packet to.
 	/// \param[in] forceReceipt If 0, will automatically determine the receipt number to return. If non-zero, will return what you give it.
 	/// \return 0 on bad input. Otherwise a number that identifies this message. If \a reliability is a type that returns a receipt, on a later call to Receive() you will get ID_SND_RECEIPT_ACKED or ID_SND_RECEIPT_LOSS with bytes 1-4 inclusive containing this number
-	uint32_t Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0 );
+	uint32_t Send( const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber=0, bool copy_data = true );
+    uint32_t Send(const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, uint32_t forceReceiptNumber = 0, bool copy_data = true);
 
 	/// \brief "Send" to yourself rather than a remote system.
 	/// \details The message will be processed through the plugins and returned to the game as usual.
@@ -227,7 +228,7 @@ public:
 	/// \note The first byte should be a message identifier starting at ID_USER_PACKET_ENUM
 	/// \param[in] data Block of data to send.
 	/// \param[in] length Size in bytes of the data to send.
-	void SendLoopback( const char *data, const int length );
+	void SendLoopback( const char *data, const int length, bool copy_data = true );
 
 	/// \brief Sends a block of data to the specified system that you are connected to.
 	/// 
@@ -871,14 +872,14 @@ protected:
 
 	// void RunMutexedUpdateCycle(void);
 
+    const static int MAX_RECIPIENTS = 1024;
+
 	struct BufferedCommandStruct
 	{
 		BitSize_t numberOfBitsToSend;
 		PacketPriority priority;
 		PacketReliability reliability;
 		char orderingChannel;
-		AddressOrGUID systemIdentifier;
-		bool broadcast;
 		RemoteSystemStruct::ConnectMode connectionMode;
 		NetworkID networkID;
 		bool blockingCommand; // Only used for RPC
@@ -891,6 +892,8 @@ protected:
 		unsigned short port;
 		uint32_t receipt;
 		enum {BCS_SEND, BCS_CLOSE_CONNECTION, BCS_GET_SOCKET, BCS_CHANGE_SYSTEM_ADDRESS,/* BCS_USE_USER_SOCKET, BCS_REBIND_SOCKET_ADDRESS, BCS_RPC, BCS_RPC_SHIFT,*/ BCS_DO_NOTHING} command;
+        AddressOrGUID recipients[MAX_RECIPIENTS];
+        unsigned int recipientCount;
 	};
 
 	// Single producer single consumer queue using a linked list
@@ -927,9 +930,14 @@ protected:
 	void PingInternal( const SystemAddress target, bool performImmediate, PacketReliability reliability );
 	// This stores the user send calls to be handled by the update thread.  This way we don't have thread contention over systemAddresss
 	void CloseConnectionInternal( const AddressOrGUID& systemIdentifier, bool sendDisconnectionNotification, bool performImmediate, unsigned char orderingChannel, PacketPriority disconnectionNotificationPriority );
-	void SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt );
+    
+	void SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data = true );
+    void SendBuffered(const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data = true);
 	void SendBufferedList( const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt );
+    void SendBufferedList(const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt);
 	bool SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt );
+    bool SendImmediate(char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt);
+
 	//bool HandleBufferedRPC(BufferedCommandStruct *bcs, RakNet::TimeMS time);
 	void ClearBufferedCommands(void);
 	void ClearBufferedPackets(void);

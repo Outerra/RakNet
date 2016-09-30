@@ -11,7 +11,7 @@
 #ifndef __INTERVAL_TIMER_H
 #define __INTERVAL_TIMER_H
 
-#include "RakNetTypes.h"
+#include "..\..\..\Source\RakNetTypes.h"
 
 struct IntervalTimer
 {

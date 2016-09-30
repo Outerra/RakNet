@@ -17,8 +17,8 @@ typedef struct pg_conn PGconn;
 struct pg_result;
 typedef struct pg_result PGresult;
 
-#include "RakString.h"
-#include "DS_OrderedList.h"
+#include "../../Source/RakString.h"
+#include "../../Source/DS_OrderedList.h"
 
 class PostgreSQLInterface
 {

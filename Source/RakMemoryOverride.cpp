@@ -12,6 +12,8 @@
 #include "RakAssert.h"
 #include <stdlib.h>
 
+#include <comm/binstream/stdstream.h>
+
 #ifdef _RAKNET_SUPPORT_DL_MALLOC
 #include "rdlmalloc.h"
 #endif
@@ -23,6 +25,8 @@
 
 
 using namespace RakNet;
+
+coid::stdoutstream &out = SINGLETON(coid::stdoutstream);
 
 #if _USE_RAK_MEMORY_OVERRIDE==1
 	#if defined(malloc)
@@ -140,16 +144,30 @@ int (*GetDLMallocMUnmap())(void* ptr, size_t size)
 }
 void* RakNet::_RakMalloc (size_t size)
 {
-	return malloc(size);
+	void *p = malloc(size);
+
+    /*out << "rakfree: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
+    return p;
 }
 
 void* RakNet::_RakRealloc (void *p, size_t size)
 {
+    /*out << "rakrealloc: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
 	return realloc(p,size);
 }
 
 void RakNet::_RakFree (void *p)
 {
+    /*out << "rakfree: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
 	free(p);
 }
 
@@ -158,11 +176,21 @@ void* RakNet::_RakMalloc_Ex (size_t size, const char *file, unsigned int line)
 	(void) file;
 	(void) line;
 
-	return malloc(size);
+	void *p = malloc(size);
+
+    /*out << "rakmalloc: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
+    return p;
 }
 
 void* RakNet::_RakRealloc_Ex (void *p, size_t size, const char *file, unsigned int line)
 {
+    /*out << "rakrealloc: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
 	(void) file;
 	(void) line;
 
@@ -171,6 +199,10 @@ void* RakNet::_RakRealloc_Ex (void *p, size_t size, const char *file, unsigned i
 
 void RakNet::_RakFree_Ex (void *p, const char *file, unsigned int line)
 {
+    /*out << "rakfree: ";
+    out.append_num(16, (uints)p);
+    out << "\n";*/
+
 	(void) file;
 	(void) line;
 

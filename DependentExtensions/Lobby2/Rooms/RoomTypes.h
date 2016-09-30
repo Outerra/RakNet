@@ -8,7 +8,7 @@
  *
  */
 
-#include "DS_Table.h"
+#include "..\..\..\Source\DS_Table.h"
 
 #ifndef __ROOM_TYPES_H
 #define __ROOM_TYPES_H

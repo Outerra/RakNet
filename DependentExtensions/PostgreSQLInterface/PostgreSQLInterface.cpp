@@ -9,10 +9,10 @@
  */
 
 #include "PostgreSQLInterface.h"
-#include "VariadicSQLParser.h"
+#include "../../Source/VariadicSQLParser.h"
 
 // libpq-fe.h is part of PostgreSQL which must be installed on this computer to use the PostgreRepository
-#include "libpq-fe.h"
+#include "../../../../include/postgresql/libpq-fe.h"
 
 #ifdef _CONSOLE_1
 #include "Console1Includes.h"
@@ -32,11 +32,11 @@
 //#include <stdlib.h>
 #endif
 
-#include "RakString.h"
-#include "RakAssert.h"
-#include "BitStream.h"
-#include "FormatString.h"
-#include "LinuxStrings.h"
+#include "../../Source/RakString.h"
+#include "../../Source/RakAssert.h"
+#include "../../Source/BitStream.h"
+#include "../../Source/FormatString.h"
+#include "../../Source/LinuxStrings.h"
 
 #define PQEXECPARAM_FORMAT_TEXT		0
 #define PQEXECPARAM_FORMAT_BINARY	1

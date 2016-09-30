@@ -13,6 +13,7 @@
 
 
 
+#include "PacketDataPool.h"
 #include "ReliabilityLayer.h"
 #include "GetTime.h"
 #include "SocketLayer.h"
@@ -1595,7 +1596,7 @@ bool ReliabilityLayer::Send( char *data, BitSize_t numberOfBitsToSend, PacketPri
 	{
 		// Allocated the data elsewhere, delete it in here
 		//internalPacket->data = ( unsigned char* ) data;
-		AllocInternalPacketData(internalPacket, (unsigned char*) data );
+        IncRefCountInternalPacketData(internalPacket, (unsigned char*)data, (unsigned char*)data);
 	}
 
 	internalPacket->dataBitLength = numberOfBitsToSend;
@@ -2977,8 +2978,6 @@ void ReliabilityLayer::SplitPacket( InternalPacket *internalPacket )
 	// This identifies which packet this is in the set
 	splitPacketIndex = 0;
 
-	InternalPacketRefCountedData *refCounter=0;
-
 	// Do a loop to send out all the packets
 	do
 	{
@@ -2990,7 +2989,7 @@ void ReliabilityLayer::SplitPacket( InternalPacket *internalPacket )
 
 		// Copy over our chunk of data
 
-		AllocInternalPacketData(internalPacketArray[ splitPacketIndex ], &refCounter, internalPacket->data, internalPacket->data + byteOffset);
+		IncRefCountInternalPacketData(internalPacketArray[ splitPacketIndex ], internalPacket->data, internalPacket->data + byteOffset);
 		//		internalPacketArray[ splitPacketIndex ]->data = (unsigned char*) rakMalloc_Ex( bytesToSend, _FILE_AND_LINE_ );
 		//		memcpy( internalPacketArray[ splitPacketIndex ]->data, internalPacket->data + byteOffset, bytesToSend );
 
@@ -3212,7 +3211,7 @@ InternalPacket * ReliabilityLayer::BuildPacketFromSplitPacketList( SplitPacketCh
 		internalPacket->dataBitLength+=splitPacketChannel->splitPacketList.Get(j)->dataBitLength;
 	// splitPacketPartLength=BITS_TO_BYTES(splitPacketChannel->firstPacket->dataBitLength);
 
-	internalPacket->data = (unsigned char*) rakMalloc_Ex( (size_t) BITS_TO_BYTES( internalPacket->dataBitLength ), _FILE_AND_LINE_ );
+	internalPacket->data = PacketDataPool::get(BITS_TO_BYTES( internalPacket->dataBitLength ));
 	internalPacket->allocationScheme=InternalPacket::NORMAL;
 
     BitSize_t offset = 0;
@@ -3698,6 +3697,7 @@ InternalPacket* ReliabilityLayer::AllocateFromInternalPacketPool(void)
 	ip->allocationScheme=InternalPacket::NORMAL;
 	ip->data=0;
 	ip->timesSent=0;
+    ip->refCountedData = 0;
 	return ip;
 }
 //-------------------------------------------------------------------------------------------------------
@@ -3849,20 +3849,20 @@ ReliabilityLayer::MessageNumberNode* ReliabilityLayer::AddSubsequentToDatagramHi
 	return messageNumberNode->next;		
 }
 //-------------------------------------------------------------------------------------------------------
-void ReliabilityLayer::AllocInternalPacketData(InternalPacket *internalPacket, InternalPacketRefCountedData **refCounter, unsigned char *externallyAllocatedPtr, unsigned char *ourOffset)
+void ReliabilityLayer::IncRefCountInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr, unsigned char *ourOffset)
 {
 	internalPacket->allocationScheme=InternalPacket::REF_COUNTED;
 	internalPacket->data=ourOffset;
-	if (*refCounter==0)
+
+	if (internalPacket->refCountedData ==0)
 	{
-		*refCounter = refCountedDataPool.Allocate(_FILE_AND_LINE_);
+        internalPacket->refCountedData = refCountedDataPool.Allocate(_FILE_AND_LINE_);
 		// *refCounter = RakNet::OP_NEW<InternalPacketRefCountedData>(_FILE_AND_LINE_);
-		(*refCounter)->refCount=1;
-		(*refCounter)->sharedDataBlock=externallyAllocatedPtr;
+		internalPacket->refCountedData->refCount=1;
+        internalPacket->refCountedData->sharedDataBlock=externallyAllocatedPtr;
 	}
 	else
-		(*refCounter)->refCount++;
-	internalPacket->refCountedData=(*refCounter);
+        internalPacket->refCountedData->refCount++;
 }
 //-------------------------------------------------------------------------------------------------------
 void ReliabilityLayer::AllocInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr)
@@ -3881,7 +3881,7 @@ void ReliabilityLayer::AllocInternalPacketData(InternalPacket *internalPacket, u
 	else
 	{
 		internalPacket->allocationScheme=InternalPacket::NORMAL;
-		internalPacket->data=(unsigned char*) rakMalloc_Ex(numBytes,file,line);
+		internalPacket->data = PacketDataPool::get(numBytes);
 	}
 }
 //-------------------------------------------------------------------------------------------------------
@@ -3898,7 +3898,7 @@ void ReliabilityLayer::FreeInternalPacketData(InternalPacket *internalPacket, co
 		internalPacket->refCountedData->refCount--;
 		if (internalPacket->refCountedData->refCount==0)
 		{
-			rakFree_Ex(internalPacket->refCountedData->sharedDataBlock, file, line );
+            PacketDataPool::put(internalPacket->refCountedData->sharedDataBlock);
 			internalPacket->refCountedData->sharedDataBlock=0;
 			// RakNet::OP_DELETE(internalPacket->refCountedData,file, line);
 			refCountedDataPool.Release(internalPacket->refCountedData,file, line);
@@ -3910,7 +3910,7 @@ void ReliabilityLayer::FreeInternalPacketData(InternalPacket *internalPacket, co
 		if (internalPacket->data==0)
 			return;
 
-		rakFree_Ex(internalPacket->data, file, line );
+        PacketDataPool::put(internalPacket->data);
 		internalPacket->data=0;
 	}
 	else

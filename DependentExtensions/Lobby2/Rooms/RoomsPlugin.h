@@ -17,13 +17,13 @@
 #ifndef __ROOMS_PLUGIN_H
 #define __ROOMS_PLUGIN_H
 
-#include "RakNetTypes.h"
-#include "PluginInterface2.h"
-#include "DS_OrderedList.h"
-#include "Export.h"
+#include "..\..\..\Source\RakNetTypes.h"
+#include "..\..\..\Source\PluginInterface2.h"
+#include "..\..\..\Source\DS_OrderedList.h"
+#include "..\..\..\Source\Export.h"
 #include "RoomsContainer.h"
-#include "PacketPriority.h"
-#include "BitStream.h"
+#include "..\..\..\Source\PacketPriority.h"
+#include "..\..\..\Source\BitStream.h"
 
 /// \defgroup ROOMS_GROUP RoomsPlugin
 /// \brief Networked implementation of a rooms system, where members join and leave rooms.

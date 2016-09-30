@@ -11,11 +11,11 @@
 #ifndef __LOBBY_ROOM_H
 #define __LOBBY_ROOM_H
 
-#include "DS_Map.h"
-#include "DS_Table.h"
+#include "..\..\..\Source\DS_Map.h"
+#include "..\..\..\Source\DS_Table.h"
 #include "RoomsErrorCodes.h"
-#include "DS_List.h"
-#include "RakNetTypes.h"
+#include "..\..\..\Source\DS_List.h"
+#include "..\..\..\Source\RakNetTypes.h"
 #include "IntervalTimer.h"
 #include "RoomTypes.h"
 

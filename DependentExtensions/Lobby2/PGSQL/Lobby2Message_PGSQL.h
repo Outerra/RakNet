@@ -8,12 +8,12 @@
  *
  */
 
-#include "Lobby2Message.h"
-#include "Lobby2Server.h"
+#include "../Lobby2Message.h"
+#include "../Lobby2Server.h"
 // libpq-fe.h is part of PostgreSQL which must be installed on this computer to use the PostgreRepository
-#include "libpq-fe.h"
-#include "PostgreSQLInterface.h"
-#include "EpochTimeToString.h"
+#include "../../../../../include/postgresql/libpq-fe.h"
+#include "../../PostgreSQLInterface/PostgreSQLInterface.h"
+#include "../../../Source/EpochTimeToString.h"
 
 #ifndef __LOBBY_2_MESSAGE_PGSQL_H
 #define __LOBBY_2_MESSAGE_PGSQL_H

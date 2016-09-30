@@ -11,11 +11,11 @@
 #ifndef __LOBBY_2_SERVER_H
 #define __LOBBY_2_SERVER_H
 
-#include "Export.h"
-#include "RakNetTypes.h"
+#include "../../Source/Export.h"
+#include "../../Source/RakNetTypes.h"
 #include "Lobby2Plugin.h"
-#include "DS_OrderedList.h"
-#include "ThreadPool.h"
+#include "../../Source/DS_OrderedList.h"
+#include "../../Source/ThreadPool.h"
 #include "Lobby2Presence.h"
 
 //class PostgreSQLInterface;

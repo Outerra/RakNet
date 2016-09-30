@@ -11,7 +11,7 @@
 #ifndef __LOBBY_2_SERVER_PGSQL_H
 #define __LOBBY_2_SERVER_PGSQL_H
 
-#include "Lobby2Server.h"
+#include "../Lobby2Server.h"
 
 class PostgreSQLInterface;
 

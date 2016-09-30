@@ -11,12 +11,12 @@
 #ifndef __LOBBY_2_MESSAGE_H
 #define __LOBBY_2_MESSAGE_H
 
-#include "BitStream.h"
+#include "../../Source/BitStream.h"
 #include "Lobby2ResultCode.h"
-#include "RakString.h"
-#include "RakAssert.h"
-#include "RakNetSmartPtr.h"
-#include "SimpleMutex.h"
+#include "../../Source/RakString.h"
+#include "../../Source/RakAssert.h"
+#include "../../Source/RakNetSmartPtr.h"
+#include "../../Source/SimpleMutex.h"
 #include "Lobby2Presence.h"
 
 

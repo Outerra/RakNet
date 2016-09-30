@@ -12,9 +12,9 @@
 #define __LOBBY_2_PLUGIN_H
 
 #include "Lobby2Message.h"
-#include "PluginInterface2.h"
-#include "PacketPriority.h"
-#include "RakPeerInterface.h"
+#include "../../Source/PluginInterface2.h"
+#include "../../Source/PacketPriority.h"
+#include "../../Source/RakPeerInterface.h"
 
 /// \defgroup LOBBY_2_GROUP Lobby2Plugin
 /// \brief SQL based lobby system, with support for users, friends, clans, emails, ranking, and a message board

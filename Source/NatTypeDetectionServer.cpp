@@ -80,10 +80,13 @@ void NatTypeDetectionServer::Startup(
 	strcpy(s3p4Address, nonRakNetIP3);
 
 
-	#if !defined(__native_client__) && !defined(WINDOWS_STORE_RT)
-	if (s3p4->IsBerkleySocket())
-		((RNS2_Berkley*) s3p4)->CreateRecvPollingThread(0);
-	#endif
+    if (s3p4 != 0)
+    {
+#if !defined(__native_client__) && !defined(WINDOWS_STORE_RT)
+        if (s3p4->IsBerkleySocket())
+            ((RNS2_Berkley*)s3p4)->CreateRecvPollingThread(0);
+#endif
+    }
 }
 void NatTypeDetectionServer::Shutdown()
 {

@@ -9,7 +9,7 @@
  */
 
 #include "Lobby2Server_PGSQL.h"
-#include "PostgreSQLInterface.h"
+#include "../../PostgreSQLInterface/PostgreSQLInterface.h"
 
 using namespace RakNet;
 

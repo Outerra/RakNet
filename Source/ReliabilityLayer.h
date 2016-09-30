@@ -191,7 +191,6 @@ struct BPSTracker
 class ReliabilityLayer//<ReliabilityLayer>
 {
 public:
-
 	// Constructor
 	ReliabilityLayer();
 
@@ -644,7 +643,7 @@ private:
 	BitSize_t GetMaxDatagramSizeExcludingMessageHeaderBits(void);
 
 	// ourOffset refers to a section within externallyAllocatedPtr. Do not deallocate externallyAllocatedPtr until all references are lost
-	void AllocInternalPacketData(InternalPacket *internalPacket, InternalPacketRefCountedData **refCounter, unsigned char *externallyAllocatedPtr, unsigned char *ourOffset);
+	void IncRefCountInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr, unsigned char *ourOffset);
 	// Set the data pointer to externallyAllocatedPtr, do not allocate
 	void AllocInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr);
 	// Allocate new

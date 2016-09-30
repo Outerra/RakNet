@@ -11,8 +11,8 @@
 #ifndef __PROFANITY_FILTER__H__
 #define __PROFANITY_FILTER__H__
 
-#include "DS_List.h"
-#include "RakString.h"
+#include "../../../Source/DS_List.h"
+#include "../../../Source/RakString.h"
 
 namespace RakNet {
 
