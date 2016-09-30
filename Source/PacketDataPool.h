@@ -12,7 +12,7 @@ namespace RakNet {
         static const char *TRACK_NAME;
 
     public:
-        static unsigned char *get(uints size = MIN_POOLED_DATA_SIZE);
+        static unsigned char *get(uints size = 0);
         static void put(unsigned char *data);
     };
 }

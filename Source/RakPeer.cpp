@@ -1291,7 +1291,7 @@ uint32_t RakPeer::IncrementNextSendReceipt(void)
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 uint32_t RakPeer::Send(const char *data, const int length, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, uint32_t forceReceiptNumber, bool copy_data ) {
     if (broadcast) {
-        return Send(data, length, priority, reliability, orderingChannel, NULL, 0, forceReceiptNumber, copy_data);
+        return Send(data, length, priority, reliability, orderingChannel, (const AddressOrGUID *) NULL, 0, forceReceiptNumber, copy_data);
     }
 
     const AddressOrGUID recipients[] = { systemIdentifier };
@@ -3182,7 +3182,7 @@ int RakPeer::GetIndexFromSystemAddress( const SystemAddress systemAddress, bool 
 	return -1;
 }
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
-int RakPeer::GetIndexFromGuid( const RakNetGUID guid )
+int RakPeer::GetIndexFromGuid( const RakNetGUID guid ) const
 {
 	unsigned i;
 
@@ -4206,14 +4206,13 @@ void RakPeer::CloseConnectionInternal( const AddressOrGUID& systemIdentifier, bo
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 void RakPeer::SendBuffered(const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data) {
     if (broadcast) {
-        SendBuffered(data, numberOfBitsToSend, priority, reliability, orderingChannel, NULL, 0, connectionMode, receipt, copy_data);
+        SendBuffered(data, numberOfBitsToSend, priority, reliability, orderingChannel, (const AddressOrGUID *) NULL, 0, connectionMode, receipt, copy_data);
         return;
     }
 
     const AddressOrGUID recipients[] = { systemIdentifier };
     SendBuffered(data, numberOfBitsToSend, priority, reliability, orderingChannel, recipients, 1, connectionMode, receipt, copy_data);
 }
-
 
 void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data)
 {

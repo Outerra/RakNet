@@ -307,6 +307,7 @@ public:
 	/// \param[in] systemAddress The SystemAddress we are referring to
 	/// \return The index of this SystemAddress or -1 on system not found.
 	int GetIndexFromSystemAddress( const SystemAddress systemAddress ) const;
+    int GetIndexFromGuid(const RakNetGUID guid) const;
 
 	/// \brief Given \a index into remoteSystemList, will return a SystemAddress.
 	/// This function is only useful for looping through all systems.
@@ -708,7 +709,6 @@ protected:
 	friend void ProcessNetworkPacket( const SystemAddress systemAddress, const char *data, const int length, RakPeer *rakPeer, RakNetSocket2* rakNetSocket, RakNet::TimeUS timeRead, BitStream &updateBitStream );
 
 	int GetIndexFromSystemAddress( const SystemAddress systemAddress, bool calledFromNetworkThread ) const;
-	int GetIndexFromGuid( const RakNetGUID guid );
 
 	//void RemoveFromRequestedConnectionsList( const SystemAddress systemAddress );
 	// Two versions needed because some buggy compilers strip the last parameter if unused, and crashes
@@ -933,6 +933,7 @@ protected:
     
 	void SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data = true );
     void SendBuffered(const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data = true);
+
 	void SendBufferedList( const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt );
     void SendBufferedList(const char **data, const int *lengths, const int numParameters, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt);
 	bool SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID systemIdentifier, bool broadcast, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt );

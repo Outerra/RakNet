@@ -31,6 +31,7 @@ namespace RakNet {
         out.append_num(16, (uints)data);
         out << "\n";*/
 
+        comm_array_allocator::set_count(data, size);
         return data;
     }
 
