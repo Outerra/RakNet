@@ -4217,21 +4217,28 @@ void RakPeer::SendBuffered(const char *data, BitSize_t numberOfBitsToSend, Packe
 void RakPeer::SendBuffered( const char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, RemoteSystemStruct::ConnectMode connectionMode, uint32_t receipt, bool copy_data)
 {
 	BufferedCommandStruct *bcs;
+    size_t numberOfBytesToSend = (size_t)BITS_TO_BYTES(numberOfBitsToSend);
 
 	bcs=bufferedCommands.Allocate( _FILE_AND_LINE_ );
-	bcs->data = (char*) PacketDataPool::get(BITS_TO_BYTES(numberOfBitsToSend)); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
-	if (bcs->data==0)
-	{
-		notifyOutOfMemory(_FILE_AND_LINE_);
-		bufferedCommands.Deallocate(bcs, _FILE_AND_LINE_);
-		return;
-	}
 	
 	RakAssert( !( reliability >= NUMBER_OF_RELIABILITIES || reliability < 0 ) );
 	RakAssert( !( priority > NUMBER_OF_PRIORITIES || priority < 0 ) );
 	RakAssert( !( orderingChannel >= NUMBER_OF_ORDERED_STREAMS ) );
 
-	memcpy(bcs->data, data, (size_t) BITS_TO_BYTES(numberOfBitsToSend));
+    if (copy_data) {
+        bcs->data = (char*)PacketDataPool::get(numberOfBytesToSend); // Making a copy doesn't lose efficiency because I tell the reliability layer to use this allocation for its own copy
+        if (bcs->data == 0) {
+            notifyOutOfMemory(_FILE_AND_LINE_);
+            bufferedCommands.Deallocate(bcs, _FILE_AND_LINE_);
+            return;
+        }
+
+        memcpy(bcs->data, data, numberOfBytesToSend);
+    }
+    else {
+        bcs->data = (char *) data;
+    }
+
 	bcs->numberOfBitsToSend=numberOfBitsToSend;
 	bcs->priority=priority;
 	bcs->reliability=reliability;
@@ -5931,6 +5938,16 @@ bool RakPeer::RunUpdateCycle(BitStream &updateBitStream )
 			}
 
 			remoteSystem->reliabilityLayer.Update( remoteSystem->rakNetSocket, systemAddress, remoteSystem->MTUSize, timeNS, maxOutgoingBPS, pluginListNTS, &rnr, updateBitStream ); // systemAddress only used for the internet simulator test
+
+            /*DASSERT(!remoteSystem->reliabilityLayer.IsDeadConnection());
+            DASSERT(!((remoteSystem->connectMode == RemoteSystemStruct::DISCONNECT_ASAP || remoteSystem->connectMode == RemoteSystemStruct::DISCONNECT_ASAP_SILENTLY) && remoteSystem->reliabilityLayer.IsOutgoingDataWaiting() == false));
+            DASSERT(!(remoteSystem->connectMode == RemoteSystemStruct::DISCONNECT_ON_NO_ACK && (remoteSystem->reliabilityLayer.AreAcksWaiting() == false || remoteSystem->reliabilityLayer.AckTimeout(timeMS) == true)));
+            DASSERT(!((
+                (remoteSystem->connectMode == RemoteSystemStruct::REQUESTED_CONNECTION ||
+                    remoteSystem->connectMode == RemoteSystemStruct::HANDLING_CONNECTION_REQUEST ||
+                    remoteSystem->connectMode == RemoteSystemStruct::UNVERIFIED_SENDER)
+                && timeMS > remoteSystem->connectionTime && timeMS - remoteSystem->connectionTime > 10000))
+            );*/
 
 			// Check for failure conditions
 			if ( remoteSystem->reliabilityLayer.IsDeadConnection() ||
