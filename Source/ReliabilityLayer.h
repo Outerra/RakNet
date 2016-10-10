@@ -92,7 +92,7 @@ public:
 		data = RakNet::OP_NEW_ARRAY<InternalPacket*>(allocation_size, file, line);
 		packetId = internalPacket->splitPacketId;
 
-		for (int i = 0; i < allocation_size; ++i)
+		for (unsigned int i = 0; i < allocation_size; ++i)
 		{
 			data[i] = NULL;
 		}
@@ -643,7 +643,7 @@ private:
 	BitSize_t GetMaxDatagramSizeExcludingMessageHeaderBits(void);
 
 	// ourOffset refers to a section within externallyAllocatedPtr. Do not deallocate externallyAllocatedPtr until all references are lost
-	void IncRefCountInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr, unsigned char *ourOffset);
+	void IncRefCountInternalPacketData(InternalPacket *internalPacket, unsigned char *offset = 0);
 	// Set the data pointer to externallyAllocatedPtr, do not allocate
 	void AllocInternalPacketData(InternalPacket *internalPacket, unsigned char *externallyAllocatedPtr);
 	// Allocate new

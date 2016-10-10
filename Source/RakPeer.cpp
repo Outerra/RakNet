@@ -1026,11 +1026,12 @@ void RakPeer::Shutdown( unsigned int blockDuration, unsigned char orderingChanne
 {
 	unsigned i,j;
 	bool anyActive;
-	RakNet::TimeMS startWaitingTime;
 //	SystemAddress systemAddress;
 	RakNet::TimeMS time;
 	//unsigned short systemListSize = remoteSystemListSize; // This is done for threading reasons
 	unsigned int systemListSize = maximumNumberOfPeers;
+
+    RakNet::TimeMS startWaitingTime = RakNet::GetTimeMS();
 
 	if ( blockDuration > 0 )
 	{
@@ -1041,9 +1042,7 @@ void RakPeer::Shutdown( unsigned int blockDuration, unsigned char orderingChanne
 				NotifyAndFlagForShutdown(remoteSystemList[i].systemAddress, false, orderingChannel, disconnectionNotificationPriority);
 		}
 
-		time = RakNet::GetTimeMS();
-		startWaitingTime = time;
-		while ( time - startWaitingTime < blockDuration )
+		do
 		{
 			anyActive=false;
 			for (j=0; j < systemListSize; j++)
@@ -1066,7 +1065,9 @@ void RakPeer::Shutdown( unsigned int blockDuration, unsigned char orderingChanne
 			RakSleep(15);
 			time = RakNet::GetTimeMS();
 		}
+        while (RakNet::GetTimeMS() - startWaitingTime < blockDuration);
 	}
+
 	for (i=0; i < pluginListTS.Size(); i++)
 	{
 		pluginListTS[i]->OnRakPeerShutdown();
@@ -1104,7 +1105,9 @@ void RakPeer::Shutdown( unsigned int blockDuration, unsigned char orderingChanne
 	}
 	*/
 
-	while ( isMainLoopThreadActive )
+    int count = 10;
+
+	while (( isMainLoopThreadActive ) && ((count-- > 0) || (blockDuration > 0) && (RakNet::GetTimeMS() - startWaitingTime < blockDuration)))
 	{
 		endThreads = true;
 		RakSleep(15);
@@ -4342,13 +4345,10 @@ bool RakPeer::SendImmediate(char *data, BitSize_t numberOfBitsToSend, PacketPrio
 bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPriority priority, PacketReliability reliability, char orderingChannel, const AddressOrGUID *recipients, int recipientCount, bool useCallerDataAllocation, RakNet::TimeUS currentTime, uint32_t receipt )
 {
 	unsigned *sendList;
-	unsigned sendListSize;
-	bool callerDataAllocationUsed;
-	unsigned int remoteSystemIndex; // Iterates into the list of remote systems
-//	unsigned numberOfBytesUsed = (unsigned) BITS_TO_BYTES(numberOfBitsToSend);
-	callerDataAllocationUsed=false;
-
-	sendListSize=0;
+	unsigned sendListSize = 0;
+	bool callerDataAllocationUsed = false;
+	int remoteSystemIndex; // Iterates into the list of remote systems
+	
 
 	if (recipientCount > 0)
 	{
@@ -4393,11 +4393,9 @@ bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPri
 		unsigned int idx;
 		for ( idx = 0; idx < maximumNumberOfPeers; idx++ )
 		{
-			if (remoteSystemIndex!=(unsigned int) -1 && idx==remoteSystemIndex)
-				continue;
-
-			if ( remoteSystemList[ idx ].isActive && remoteSystemList[ idx ].systemAddress != UNASSIGNED_SYSTEM_ADDRESS )
-				sendList[sendListSize++]=idx;
+            if (remoteSystemList[idx].isActive && remoteSystemList[idx].systemAddress != UNASSIGNED_SYSTEM_ADDRESS) {
+                sendList[sendListSize++] = idx;
+            }
 		}
 	}
 
@@ -4409,6 +4407,10 @@ bool RakPeer::SendImmediate( char *data, BitSize_t numberOfBitsToSend, PacketPri
 
 		return false;
 	}
+
+    if (sendListSize > 1) {
+        useCallerDataAllocation = false;
+    }
 
 	for (unsigned int sendListIndex=0; sendListIndex < sendListSize; sendListIndex++)
 	{
