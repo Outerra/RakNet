@@ -12,8 +12,6 @@
 #include "RakAssert.h"
 #include <stdlib.h>
 
-#include <comm/binstream/stdstream.h>
-
 #ifdef _RAKNET_SUPPORT_DL_MALLOC
 #include "rdlmalloc.h"
 #endif
@@ -25,8 +23,6 @@
 
 
 using namespace RakNet;
-
-coid::stdoutstream &out = SINGLETON(coid::stdoutstream);
 
 #if _USE_RAK_MEMORY_OVERRIDE==1
 	#if defined(malloc)
