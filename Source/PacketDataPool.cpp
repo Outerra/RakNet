@@ -3,7 +3,7 @@
 #include <comm/atomic/stack_base.h>
 
 //#include <comm/binstream/stdstream.h>
-#include <comm/singleton.h>
+//#include <comm/singleton.h>
 
 using namespace coid;
 
