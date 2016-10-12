@@ -51,7 +51,7 @@ namespace DataStructures
 			Page *next, *prev;
 		};
 
-		MemoryPool();
+		MemoryPool(int pageSize = 16384);
 		~MemoryPool();
 		void SetPageSize(int size); // Defaults to 16384 bytes
 		MemoryBlockType *Allocate(const char *file, unsigned int line);
@@ -75,13 +75,13 @@ namespace DataStructures
 	};
 
 	template<class MemoryBlockType>
-	MemoryPool<MemoryBlockType>::MemoryPool()
+	MemoryPool<MemoryBlockType>::MemoryPool(int pageSize)
 	{
 #ifndef _DISABLE_MEMORY_POOL
 		//AllocateFirst();
 		availablePagesSize=0;
 		unavailablePagesSize=0;
-		memoryPoolPageSize=16384;
+		memoryPoolPageSize=pageSize;
 #endif
 	}
 	template<class MemoryBlockType>

@@ -1,21 +1,20 @@
 #include "PacketDataPool.h"
 
+#ifdef COMM
 #include <comm/atomic/stack_base.h>
 
-//#include <comm/binstream/stdstream.h>
 //#include <comm/singleton.h>
+//#include <comm/binstream/stdstream.h>
 
 using namespace coid;
 
 namespace RakNet {
-    const uints PacketDataPool::MIN_POOLED_DATA_SIZE = 1500;
-    const uints PacketDataPool::MAX_POOLED_DATA_SIZE = 100000;
-    const char *PacketDataPool::TRACK_NAME = "raknet::packet_data_pool";
+    const char *TRACK_NAME = "raknet::packet_data_pool";
+    atomic::stack_base<unsigned char *> pool;
     
     //LOCAL_SINGLETON(coid::stdoutstream) out;
-    atomic::stack_base<unsigned char *> pool;
 
-    unsigned  char *PacketDataPool::get(uints size) {
+    unsigned  char *PacketDataPool::get(int size) {
         unsigned char *data;
 
         if (pool.pop(data)) {
@@ -24,7 +23,7 @@ namespace RakNet {
             }
         }
         else {
-            data = (unsigned char *) comm_array_allocator::alloc(std::max(MIN_POOLED_DATA_SIZE, size), 1, TRACK_NAME);
+            data = (unsigned char *) comm_array_allocator::alloc(std::max(MIN_POOLED_PACKET_DATA_SIZE, size), 1, TRACK_NAME);
         }
 
         //*out << "get: ";
@@ -40,7 +39,7 @@ namespace RakNet {
         //out->append_num(16, (uints)data);
         //*out << "\n";
 
-        if (comm_array_allocator::size(data) <= MAX_POOLED_DATA_SIZE) {
+        if (comm_array_allocator::size(data) <= MAX_POOLED_PACKET_DATA_SIZE) {
             pool.push(data);
         }
         else {
@@ -48,3 +47,19 @@ namespace RakNet {
         }
     }
 }
+
+#else
+
+#include "RakMemoryOverride.h"
+
+namespace RakNet {
+    unsigned char *PacketDataPool::get(int size) {
+        return (unsigned char *) rakMalloc(size);
+    }
+
+    void PacketDataPool::put(unsigned char *data) {
+        rakFree(data);
+    }
+}
+
+#endif

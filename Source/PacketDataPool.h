@@ -1,18 +1,15 @@
 #pragma once
 
-#include <comm/dynarray.h>
-#include <comm/alloc/commalloc.h>
-
 namespace RakNet {
+
+    const int MIN_POOLED_PACKET_DATA_SIZE = 1500;
+    const int MAX_POOLED_PACKET_DATA_SIZE = 100000;
+    
     class PacketDataPool {
 
-    private:
-        static const uints MIN_POOLED_DATA_SIZE;
-        static const uints MAX_POOLED_DATA_SIZE;
-        static const char *TRACK_NAME;
-
     public:
-        static unsigned char *get(uints size = 0);
+        static unsigned char *get(int size = 0);
         static void put(unsigned char *data);
+
     };
 }
