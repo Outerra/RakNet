@@ -37,7 +37,8 @@ using namespace RakNet;
 #define DEFAULT_RAKPEER_PORT 50000
 #define RAKPEER_PORT_STR "0"
 #define DEFAULT_SERVER_PORT "61111"
-#define DEFAULT_SERVER_ADDRESS "natpunch.jenkinssoftware.com"
+//#define DEFAULT_SERVER_ADDRESS "natpunch.jenkinssoftware.com"
+#define DEFAULT_SERVER_ADDRESS "iw-netherlands.planet.anteworld.com"
 
 enum SampleResult
 {
@@ -791,10 +792,11 @@ int main(void)
 		printf("\n%s\nRequires server: %s\nDescription: %s\n", samples[i]->QueryName(), samples[i]->QueryRequiresServer()==1 ? "Yes" : "No", samples[i]->QueryFunction());
 	}
 
-	printf("\nDo you have a server running the NATCompleteServer project? (y/n): ");
+	//printf("\nDo you have a server running the NATCompleteServer project? (y/n): ");
 
-	char responseLetter=getche();
-	bool hasServer=responseLetter=='y' || responseLetter=='Y' || responseLetter==' ';
+	//char responseLetter=getche();
+	//bool hasServer=responseLetter=='y' || responseLetter=='Y' || responseLetter==' ';
+    bool hasServer = true;
 	printf("\n");
 	if (hasServer==false)
 		printf("Note: Only UPNP and Router2 are supported without a server\nYou may want to consider using the Lobby2/Steam project. They host the\nservers for you.\n\n");
