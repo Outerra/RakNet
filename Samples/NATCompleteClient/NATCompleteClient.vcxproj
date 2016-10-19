@@ -55,7 +55,7 @@
     <ClCompile>
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>./../../Source;./../../DependentExtensions\miniupnpc-1.6.20120410;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_CONSOLE;STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>COMM;_CRT_SECURE_NO_DEPRECATE;WIN32;_DEBUG;_CONSOLE;STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
@@ -66,7 +66,7 @@
       <ForcedIncludeFiles />
     </ClCompile>
     <Link>
-      <AdditionalDependencies>.\..\..\Lib\MiniupnpcStatic\Lib\MiniupnpcStatic_vc9_MiniupnpcStatic_Debug_Win32.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>D:\svn\outerra\srcext\plugins\network\Lib\network_plugin_MiniupnpcStatic_Debug_Win32.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -78,7 +78,7 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
       <AdditionalIncludeDirectories>./../../Source;$(SolutionDir)DependentExtensions\miniupnpc-1.6.20120410;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>_CRT_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_CONSOLE;STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>COMM;_CRT_SECURE_NO_DEPRECATE;WIN32;NDEBUG;_CONSOLE;STATICLIB;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <PrecompiledHeader />
       <WarningLevel>Level3</WarningLevel>
@@ -105,10 +105,6 @@
   <ItemGroup>
     <ProjectReference Include="..\..\Lib\LibStatic\LibStatic_vc9.vcxproj">
       <Project>{6533bdae-0f0c-45e4-8fe7-add0f37fe063}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
-    <ProjectReference Include="..\..\Lib\MiniupnpcStatic\MiniupnpcStatic_vc9.vcxproj">
-      <Project>{65db6f4e-55cc-4ed9-9ea3-cc5900de70f8}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
   </ItemGroup>
