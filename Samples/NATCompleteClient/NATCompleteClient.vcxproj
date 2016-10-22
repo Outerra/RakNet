@@ -67,7 +67,7 @@
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)Lib\miniupnpc.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>raknet.lib;$(SolutionDir)Lib\miniupnpc.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -87,7 +87,7 @@
       <ProgramDataBaseFileName>$(OutDir)$(TargetName).pdb</ProgramDataBaseFileName>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>$(SolutionDir)Lib\miniupnpc.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>raknet.lib;$(SolutionDir)Lib\miniupnpc.lib;ws2_32.lib;IPHlpApi.Lib;comm_static.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <IgnoreAllDefaultLibraries>false</IgnoreAllDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Console</SubSystem>
@@ -105,10 +105,6 @@
     <Text Include="readme.txt" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\Lib\LibStatic\LibStatic_vc9.vcxproj">
-      <Project>{6533bdae-0f0c-45e4-8fe7-add0f37fe063}</Project>
-      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference>
     <ProjectReference Include="..\..\Lib\MiniupnpcStatic\MiniupnpcStatic_vc9.vcxproj">
       <Project>{65db6f4e-55cc-4ed9-9ea3-cc5900de70f8}</Project>
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
