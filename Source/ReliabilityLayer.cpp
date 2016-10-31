@@ -1613,7 +1613,7 @@ bool ReliabilityLayer::Send( char *data, BitSize_t numberOfBitsToSend, PacketPri
 	bool splitPacket = numberOfBytesToSend > maxDataSizeBytes;
 
 	// If a split packet, we might have to upgrade the reliability
-	if ( splitPacket )
+	/*if ( splitPacket )
 	{
 		// Split packets cannot be unreliable, in case that one part doesn't arrive and the whole cannot be reassembled.
 		// One part could not arrive either due to packetloss or due to unreliable discard
@@ -1625,7 +1625,7 @@ bool ReliabilityLayer::Send( char *data, BitSize_t numberOfBitsToSend, PacketPri
 			internalPacket->reliability=RELIABLE_SEQUENCED;
 //		else if (internalPacket->reliability==UNRELIABLE_SEQUENCED_WITH_ACK_RECEIPT)
 //			internalPacket->reliability=RELIABLE_SEQUENCED_WITH_ACK_RECEIPT;
-	}
+	}*/
 
 	//	++sendMessageNumberIndex;
 
@@ -3383,6 +3383,13 @@ void ReliabilityLayer::KillConnection( void )
 	deadConnection=true;
 }
 
+uint64_t ReliabilityLayer::GetBytesInSendBuffer(int priority) {
+    return (uint64_t) statistics.bytesInSendBuffer[priority];
+}
+
+unsigned int ReliabilityLayer::GetMessagesInSendBuffer(int priority) {
+    return statistics.messageInSendBuffer[priority];
+}
 
 //-------------------------------------------------------------------------------------------------------
 // Statistics

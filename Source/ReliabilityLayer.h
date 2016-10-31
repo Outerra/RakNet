@@ -262,6 +262,8 @@ public:
 	/// Get Statistics
 	/// \return A pointer to a static struct, filled out with current statistical information.
 	RakNetStatistics * GetStatistics( RakNetStatistics *rns );
+    uint64_t GetBytesInSendBuffer(int priority);
+    unsigned int GetMessagesInSendBuffer(int priority);
 
 	///Are we waiting for any data to be sent out or be processed by the player?
 	bool IsOutgoingDataWaiting(void);

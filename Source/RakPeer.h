@@ -615,6 +615,9 @@ public:
 	/// \return 0 if the specified system can't be found. Otherwise a pointer to the struct containing the specified system's network statistics.
 	/// \sa RakNetStatistics.h
 	RakNetStatistics * GetStatistics( const SystemAddress systemAddress, RakNetStatistics *rns=0 );
+    uint64_t GetBytesInSendBuffer(const AddressOrGUID addressOrGuid, int priority);
+    unsigned int GetMessagesInSendBuffer(const AddressOrGUID addressOrGuid, int priority);
+
 	/// \brief Returns the network statistics of the system at the given index in the remoteSystemList.
 	///	\return True if the index is less than the maximum number of peers allowed and the system is active. False otherwise.
 	bool GetStatistics( const unsigned int index, RakNetStatistics *rns );

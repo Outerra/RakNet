@@ -580,6 +580,8 @@ public:
 	/// \return 0 on can't find the specified system.  A pointer to a set of data otherwise.
 	/// \sa RakNetStatistics.h
 	virtual RakNetStatistics * GetStatistics( const SystemAddress systemAddress, RakNetStatistics *rns=0 )=0;
+    virtual uint64_t GetBytesInSendBuffer(const AddressOrGUID addressOrGuid, int priority) = 0;
+    virtual unsigned int GetMessagesInSendBuffer(const AddressOrGUID addressOrGuid, int priority) = 0;
 	/// \brief Returns the network statistics of the system at the given index in the remoteSystemList.
 	///	\return True if the index is less than the maximum number of peers allowed and the system is active. False otherwise.
 	virtual bool GetStatistics( const unsigned int index, RakNetStatistics *rns )=0;

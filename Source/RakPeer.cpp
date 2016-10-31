@@ -3067,6 +3067,28 @@ bool RakPeer::SendOutOfBand(const char *host, unsigned short remotePort, const c
 }
 
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+uint64_t RakPeer::GetBytesInSendBuffer(const AddressOrGUID addressOrGuid, int priority) {
+    RemoteSystemStruct * rss;
+    rss = GetRemoteSystem(addressOrGuid, false, false);
+    if (rss && endThreads == false)
+    {
+        return rss->reliabilityLayer.GetBytesInSendBuffer(priority);
+    }
+
+    return -1;
+}
+
+unsigned int RakPeer::GetMessagesInSendBuffer(const AddressOrGUID addressOrGuid, int priority) {
+    RemoteSystemStruct * rss;
+    rss = GetRemoteSystem(addressOrGuid, false, false);
+    if (rss && endThreads == false)
+    {
+        return rss->reliabilityLayer.GetMessagesInSendBuffer(priority);
+    }
+
+    return -1;
+}
+
 RakNetStatistics * RakPeer::GetStatistics( const SystemAddress systemAddress, RakNetStatistics *rns )
 {
 	static RakNetStatistics staticStatistics;
