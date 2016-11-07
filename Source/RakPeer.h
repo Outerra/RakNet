@@ -685,6 +685,7 @@ public:
 		// Reference counted socket to send back on
 		RakNetSocket2* rakNetSocket;
 		SystemIndex remoteSystemIndex;
+        uint64_t customSystemIndex;
 
 #if LIBCAT_SECURITY==1
 		// Cached answer used internally by RakPeer to prevent DoS attacks based on the connexion handshake
@@ -749,6 +750,9 @@ protected:
 	/// \param[in] systemAddress The player with whose clock the time difference is calculated.
 	/// \returns The clock differential for a certain player.
 	RakNet::Time GetBestClockDifferential( const SystemAddress systemAddress ) const;
+
+    void SetCustomSystemIndex(const SystemAddress &systemAddress, uint64_t index) const;
+    uint64_t GetCustomSystemIndex(const SystemAddress &systemAddress) const;
 
 	bool IsLoopbackAddress(const AddressOrGUID &systemIdentifier, bool matchPort) const;
 	SystemAddress GetLoopbackAddress(void) const;

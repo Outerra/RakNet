@@ -291,6 +291,9 @@ public:
 	/// \return The RakNetGUID
 	virtual RakNetGUID GetGUIDFromIndex( unsigned int index )=0;
 
+    virtual void SetCustomSystemIndex(const SystemAddress &systemAddress, uint64_t index) const=0;
+    virtual uint64_t GetCustomSystemIndex(const SystemAddress &systemAddress) const=0;
+
 	/// Same as calling GetSystemAddressFromIndex and GetGUIDFromIndex for all systems, but more efficient
 	/// Indices match each other, so \a addresses[0] and \a guids[0] refer to the same system
 	/// \param[out] addresses All system addresses. Size of the list is the number of connections. Size of the list will match the size of the \a guids list.

@@ -1838,6 +1838,16 @@ RakNetGUID RakPeer::GetGUIDFromIndex( unsigned int index )
 	return UNASSIGNED_RAKNET_GUID;
 }
 
+void RakPeer::SetCustomSystemIndex(const SystemAddress &systemAddress, uint64_t index) const {
+    RemoteSystemStruct *remoteSystem = GetRemoteSystemFromSystemAddress(systemAddress, false, true);
+    remoteSystem->customSystemIndex = index;
+}
+
+uint64_t RakPeer::GetCustomSystemIndex(const SystemAddress &systemAddress) const {
+    RemoteSystemStruct *remoteSystem = GetRemoteSystemFromSystemAddress(systemAddress, false, true);
+    return (remoteSystem != NULL) ? remoteSystem->customSystemIndex : uint64_t(-1);
+}
+
 // --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
 // Same as calling GetSystemAddressFromIndex and GetGUIDFromIndex for all systems, but more efficient
 // Indices match each other, so \a addresses[0] and \a guids[0] refer to the same system
@@ -3678,6 +3688,7 @@ RakPeer::RemoteSystemStruct * RakPeer::AssignSystemAddressToRemoteSystemList( co
 			remoteSystem=remoteSystemList+assignedIndex;
 			ReferenceRemoteSystem(systemAddress, assignedIndex);
 			remoteSystem->MTUSize=defaultMTUSize;
+            remoteSystem->customSystemIndex = -1;
 			remoteSystem->guid=guid;
 			remoteSystem->isActive = true; // This one line causes future incoming packets to go through the reliability layer
 			// Reserve this reliability layer for ourselves.
