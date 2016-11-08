@@ -1844,7 +1844,7 @@ void RakPeer::SetCustomSystemIndex(const SystemAddress &systemAddress, uint64_t 
 }
 
 uint64_t RakPeer::GetCustomSystemIndex(const SystemAddress &systemAddress) const {
-    RemoteSystemStruct *remoteSystem = GetRemoteSystemFromSystemAddress(systemAddress, false, true);
+    RemoteSystemStruct *remoteSystem = GetRemoteSystemFromSystemAddress(systemAddress, false, false);
     return (remoteSystem != NULL) ? remoteSystem->customSystemIndex : uint64_t(-1);
 }
 
