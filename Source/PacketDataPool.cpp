@@ -14,7 +14,7 @@ namespace RakNet {
     
     //LOCAL_SINGLETON(coid::stdoutstream) out;
 
-    unsigned  char *PacketDataPool::get(int size) {
+    unsigned  char *PacketDataPool::get(unsigned int size) {
         unsigned char *data;
 
         if (pool.pop(data)) {
